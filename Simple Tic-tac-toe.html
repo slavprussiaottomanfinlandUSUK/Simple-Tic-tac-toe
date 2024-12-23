@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Tic-tac-toe</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #000;
+            color: #fff;
+        }
+        #renderDiv {
+            width: 800px;
+            height: 600px;
+            margin: 50px auto;
+            border: 2px solid #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #000;
+        }
+    </style>
+</head>
+<body>
+    <div id="renderDiv"></div>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <script>
+        class CreditsScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'CreditsScene' });
+            }
+            create() {
+                this.cameras.main.setBackgroundColor(this.registry.get('paperMode') ? '#f0e6d2' : '#000000');
+                this.add.text(400, 100, 'Credits', {
+                    fontSize: '48px',
+                    fill: this.registry.get('paperMode') ? '#2b2b2b' : '#ffffff'
+                }).setOrigin(0.5);
+                this.add.text(400, 200, 'Developed by RoseBud AI, Ported by ChatGPT', {
+                    fontSize: '32px',
+                    fill: this.registry.get('paperMode') ? '#2b2b2b' : '#ffffff'
+                }).setOrigin(0.5);
+                const licenseText = this.add.text(400, 300, 
+                    'This is free and unencumbered software released into the public domain.\n\n' +
+                    'Anyone is free to copy, modify, publish, use, compile, sell, or distribute this software, ' +
+                    'either in source code form or as a compiled binary, for any purpose, commercial or non-commercial, ' +
+                    'and by any means.\n\nFor more information, please refer to <http://unlicense.org>', {
+                        fontSize: '16px',
+                        fill: this.registry.get('paperMode') ? '#2b2b2b' : '#ffffff',
+                        align: 'center',
+                        wordWrap: { width: 600 }
+                    }).setOrigin(0.5);
+                const backButton = this.add.text(400, 500, 'Back to Menu', {
+                    fontSize: '32px',
+                    fill: this.registry.get('paperMode') ? '#2b2b2b' : '#ffffff'
+                }).setOrigin(0.5);
+                backButton.setInteractive({ useHandCursor: true })
+                    .on('pointerover', () => backButton.setStyle({ fill: '#00ff00' }))
+                    .on('pointerout', () => backButton.setStyle({ fill: this.registry.get('paperMode') ? '#2b2b2b' : '#ffffff' }))
+                    .on('pointerdown', () => this.scene.start('MenuScene'));
+            }
+        }
+        class MenuScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'MenuScene' });
+            }
+            create() {
+                this.cameras.main.setBackgroundColor(this.registry.get('paperMode') ? '#f0e6d2' : '#000000');
+                const centerX = this.cameras.main.centerX;
+                this.add.text(centerX, 100, 'Simple Tic-tac-toe', {
+                    fontSize: '48px',
+                    fill: this.registry.get('paperMode') ? '#2b2b2b' : '#ffffff'
+                }).setOrigin(0.5);
+                const menuItems = ['1 Player', '2 Players', this.registry.get('paperMode') ? 'Dark Mode' : 'Paper Mode', 'Credits'];
+                const startY = 250;
+                const spacing = 70;
+                menuItems.forEach((item, index) => {
+                    const y = startY + (spacing * index);
+                    const text = this.add.text(centerX, y, item, {
+                        fontSize: '32px',
+                        fill: this.registry.get('paperMode') ? '#2b2b2b' : '#ffffff'
+                    }).setOrigin(0.5);
+                    text.setInteractive({ useHandCursor: true })
+                        .on('pointerover', () => text.setStyle({ fill: '#00ff00' }))
+                        .on('pointerout', () => text.setStyle({ fill: this.registry.get('paperMode') ? '#2b2b2b' : '#ffffff' }))
+                        .on('pointerdown', () => {
+                            if (item === '1 Player') {
+                                this.scene.start('GameScene', { isAIGame: true });
+                            } else if (item === '2 Players') {
+                                this.scene.start('GameScene', { isAIGame: false });
+                            } else if (item === 'Paper Mode' || item === 'Dark Mode') {
+                                this.registry.set('paperMode', !this.registry.get('paperMode'));
+                                this.scene.restart();
+                            } else if (item === 'Credits') {
+                                this.scene.start('CreditsScene');
+                            }
+                        });
+                });
+            }
+        }
+        class GameScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'GameScene' });
+                this.cellSize = 100;
+                this.boardX = 300;
+                this.boardY = 150;
+                this.gameState = Array(9).fill('');
+                this.currentPlayer = '';
+                this.isAIGame = true;
+                this.gameActive = true;
+                this.scoreX = 0;
+                this.scoreO = 0;
+                this.winLine = null;
+            }
+            init(data) {
+                this.gameState = Array(9).fill('');
+                this.gameActive = true;
+                this.currentPlayer = Math.random() < 0.5 ? 'X' : 'O';
+                this.isAIGame = data.isAIGame;
+                this.scoreX = 0;
+                this.scoreO = 0;
+
+                if (this.isAIGame) {
+                    this.playerSymbol = Math.random() < 0.5 ? 'X' : 'O';
+                    this.aiSymbol = this.playerSymbol === 'X' ? 'O' : 'X';
+                }
+            }
+            create() {
+                const isPaperMode = this.registry.get('paperMode');
+                this.cameras.main.setBackgroundColor(isPaperMode ? '#f0e6d2' : '#000000');
+                this.scoreTextX = this.add.text(50, 50, 'X: 0', {
+                    fontSize: '28px',
+                    fill: isPaperMode ? '#2b2b2b' : '#ffffff'
+                });
+                this.scoreTextO = this.add.text(750, 50, 'O: 0', {
+                    fontSize: '28px',
+                    fill: isPaperMode ? '#2b2b2b' : '#ffffff'
+                }).setOrigin(1, 0);
+                this.input.keyboard.on('keydown-SPACE', () => {
+                    if (!this.gameActive) {
+                        this.resetGame();
+                    }
+                });
+                this.input.keyboard.on('keydown-ESC', () => {
+                    this.scene.start('MenuScene');
+                });
+                this.turnText = this.add.text(this.boardX + (this.cellSize * 1.5), this.boardY - 50, '', {
+                    fontSize: '24px',
+                    fill: isPaperMode ? '#2b2b2b' : '#ffffff',
+                    align: 'center',
+                    wordWrap: { width: 400 }
+                }).setOrigin(0.5);
+                this.updateTurnText();
+                const graphics = this.add.graphics();
+                graphics.lineStyle(2, isPaperMode ? 0x2b2b2b : 0xFFFFFF);
+                graphics.beginPath();
+                graphics.moveTo(this.boardX + this.cellSize, this.boardY);
+                graphics.lineTo(this.boardX + this.cellSize, this.boardY + this.cellSize * 3);
+                graphics.moveTo(this.boardX + this.cellSize * 2, this.boardY);
+                graphics.lineTo(this.boardX + this.cellSize * 2, this.boardY + this.cellSize * 3);
+                graphics.strokePath();
+                graphics.beginPath();
+                graphics.moveTo(this.boardX, this.boardY + this.cellSize);
+                graphics.lineTo(this.boardX + this.cellSize * 3, this.boardY + this.cellSize);
+                graphics.moveTo(this.boardX, this.boardY + this.cellSize * 2);
+                graphics.lineTo(this.boardX + this.cellSize * 3, this.boardY + this.cellSize * 2);
+                graphics.strokePath();
+                this.cells = [];
+                for (let row = 0; row < 3; row++) {
+                    for (let col = 0; col < 3; col++) {
+                        const cellX = this.boardX + (col * this.cellSize);
+                        const cellY = this.boardY + (row * this.cellSize);
+                        const cell = this.add.rectangle(
+                            cellX + this.cellSize / 2,
+                            cellY + this.cellSize / 2,
+                            this.cellSize,
+                            this.cellSize
+                        );
+                        cell.setInteractive();
+                        cell.setData('row', row);
+                        cell.setData('col', col);
+                        cell.setData('index', row * 3 + col);
+                        this.cells.push(cell);
+                        cell.on('pointerdown', () => this.handleCellClick(cell));
+                    }
+                }
+                this.marks = this.add.group();
+                if (this.isAIGame && this.currentPlayer === this.aiSymbol) {
+                    this.time.delayedCall(500, this.makeAIMove, [], this);
+                }
+            }
+            updateTurnText() {
+                if (this.isAIGame) {
+                    const currentPlayerText = this.currentPlayer === this.playerSymbol ? 'Your' : "AI's";
+                    this.turnText.setText(`${currentPlayerText} turn (${this.currentPlayer})`);
+                } else {
+                    this.turnText.setText(`Player ${this.currentPlayer}'s turn`);
+                }
+            }
+            handleCellClick(cell) {
+                if (!this.gameActive) return;
+                const index = cell.getData('index');
+                if (this.gameState[index] === '') {
+                    if (this.isAIGame) {
+                        if (this.currentPlayer === this.playerSymbol) {
+                            this.makeMove(index);
+                            if (this.gameActive) {
+                                this.time.delayedCall(500, this.makeAIMove, [], this);
+                            }
+                        }
+                    } else {
+                        this.makeMove(index);
+                    }
+                }
+            }
+            makeMove(index) {
+                if (this.gameState[index] === '') {
+                    this.gameState[index] = this.currentPlayer;
+                    const row = Math.floor(index / 3);
+                    const col = index % 3;
+                    const x = this.boardX + (col * this.cellSize) + this.cellSize / 2;
+                    const y = this.boardY + (row * this.cellSize) + this.cellSize / 2;
+                    const mark = this.add.text(x, y, this.currentPlayer, {
+                        fontSize: '64px',
+                        fill: this.registry.get('paperMode') ? '#2b2b2b' : '#ffffff'
+                    }).setOrigin(0.5);
+                    this.marks.add(mark);
+                    const winningLine = this.checkWin();
+                    if (winningLine) {
+                        this.drawWinningLine(winningLine);
+                        if (this.currentPlayer === 'X') {
+                            this.scoreX++;
+                            this.scoreTextX.setText(`X: ${this.scoreX}`);
+                        } else {
+                            this.scoreO++;
+                            this.scoreTextO.setText(`O: ${this.scoreO}`);
+                        }
+                        this.turnText.setText(`${this.currentPlayer} wins!\n\nPress SPACE to play again\nPress ESC for menu`);
+                        this.gameActive = false;
+                    } else if (!this.gameState.includes('')) {
+                        this.turnText.setText("It's a draw!\n\nPress SPACE to play again\nPress ESC for menu");
+                        this.gameActive = false;
+                    } else {
+                        this.currentPlayer = this.currentPlayer === 'X' ? 'O' : 'X';
+                        this.updateTurnText();
+                    }
+                }
+            }
+            makeAIMove() {
+                if (!this.gameActive) return;
+                const emptyCells = this.gameState
+                    .map((cell, index) => cell === '' ? index : null)
+                    .filter(cell => cell !== null);
+                if (emptyCells.length > 0) {
+                    const randomIndex = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+                    this.makeMove(randomIndex);
+                }
+            }
+            checkWin() {
+                const winConditions = [
+                    [0, 1, 2],
+                    [3, 4, 5],
+                    [6, 7, 8], // Rows
+                    [0, 3, 6],
+                    [1, 4, 7],
+                    [2, 5, 8], // Columns
+                    [0, 4, 8],
+                    [2, 4, 6]  // Diagonals
+                ];
+                for (let condition of winConditions) {
+                    if (condition.every(index => this.gameState[index] === this.currentPlayer)) {
+                        return condition;
+                    }
+                }
+                return null;
+            }
+            drawWinningLine(winningLine) {
+                this.winLine = this.add.graphics();
+                this.winLine.lineStyle(5, this.registry.get('paperMode') ? 0x2b2b2b : 0x00ff00);
+                const startIndex = winningLine[0];
+                const endIndex = winningLine[2];
+                const startRow = Math.floor(startIndex / 3);
+                const startCol = startIndex % 3;
+                const endRow = Math.floor(endIndex / 3);
+                const endCol = endIndex % 3;
+                let startX = this.boardX + (startCol * this.cellSize) + (this.cellSize / 2);
+                let startY = this.boardY + (startRow * this.cellSize) + (this.cellSize / 2);
+                let endX = this.boardX + (endCol * this.cellSize) + (this.cellSize / 2);
+                let endY = this.boardY + (endRow * this.cellSize) + (this.cellSize / 2);
+                const dirX = endX - startX;
+                const dirY = endY - startY;
+                const length = Math.sqrt(dirX * dirX + dirY * dirY);
+                const EXTENSION = 40;
+                if (length > 0) {
+                    const normalizedDirX = dirX / length;
+                    const normalizedDirY = dirY / length;
+                    startX -= normalizedDirX * EXTENSION;
+                    startY -= normalizedDirY * EXTENSION;
+                    endX += normalizedDirX * EXTENSION;
+                    endY += normalizedDirY * EXTENSION;
+                }
+                this.winLine.beginPath();
+                this.winLine.moveTo(startX, startY);
+                this.winLine.lineTo(endX, endY);
+                this.winLine.strokePath();
+            }
+            resetGame() {
+                this.gameState = Array(9).fill('');
+                this.marks.clear(true, true);
+                if (this.winLine) {
+                    this.winLine.destroy();
+                    this.winLine = null;
+                }
+                this.gameActive = true;
+                this.currentPlayer = Math.random() < 0.5 ? 'X' : 'O';
+                this.updateTurnText();
+                if (this.isAIGame && this.currentPlayer === this.aiSymbol) {
+                    this.time.delayedCall(500, this.makeAIMove, [], this);
+                }
+            }
+        }
+
+        const config = {
+            type: Phaser.AUTO,
+            parent: 'renderDiv',
+            scale: {
+                mode: Phaser.Scale.FIT,
+                autoCenter: Phaser.Scale.CENTER_BOTH,
+            },
+            width: 800,
+            height: 600,
+            scene: [MenuScene, GameScene, CreditsScene],
+            callbacks: {
+                preBoot: function(game) {
+                    game.registry.set('paperMode', false);
+                }
+            }
+        };
+
+        window.phaserGame = new Phaser.Game(config);
+    </script>
+</body>
+</html>
+
