@@ -1,7 +1,2 @@
 # Simple-Tic-tac-toe
-A phaser version of Tic-tac-toe created by Rosebud AI. Features include:
-
-Main Menu
-One or two players with AI opponent.
-Scorekeeping.
-Dark or paper theme.
+A basic game of Tic-tac-toe you can play against a buddy or the AI. Your goal is to get three of your letters in a row on the grid. Do whatever you like with the code. Features include a main menu, an optional AI opponent, scorekeeping, and two themes.
